@@ -1,6 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import time
 from dcf_engine import calculate_dcf
 
 # --- PAGE SETUP ---
@@ -10,10 +11,9 @@ st.set_page_config(page_title="AutoValuer Terminal", layout="wide", initial_side
 if 'app_started' not in st.session_state:
     st.session_state.app_started = False
 
-# --- ULTRA-MODERN CINEMATIC CSS & ANIMATIONS ---
+# --- ULTRA-MODERN IMMERSIVE CSS & ANIMATIONS ---
 st.markdown("""
     <style>
-    /* Camouflaged Financial Dark Background with Overlay */
     .stApp {
         background-image: linear-gradient(rgba(11, 19, 43, 0.92), rgba(11, 19, 43, 0.96)), 
                           url('https://images.unsplash.com/photo-1642543492481-44e81e3914a7?q=80&w=2000&auto=format&fit=crop');
@@ -22,16 +22,9 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    /* Cinematic Scale & Fade Entrance Transition for Main Screen */
     @keyframes cinematicEntrance {
-        0% {
-            opacity: 0;
-            transform: scale(0.95) translateY(25px);
-        }
-        100% {
-            opacity: 1;
-            transform: scale(1.0) translateY(0);
-        }
+        0% { opacity: 0; transform: scale(0.95) translateY(25px); }
+        100% { opacity: 1; transform: scale(1.0) translateY(0); }
     }
     
     .block-container {
@@ -65,7 +58,6 @@ st.markdown("""
         margin-bottom: 40px;
     }
 
-    /* Expanding Feature Cards on Hover */
     .feature-box {
         background: rgba(17, 34, 64, 0.85);
         border: 1px solid #233554;
@@ -100,7 +92,6 @@ st.markdown("""
         transform: translateY(0);
     }
 
-    /* Perfectly Centered, Subdued Professional FinTech Button */
     .stButton>button {
         width: 100%;
         padding: 14px 28px;
@@ -139,41 +130,61 @@ st.markdown("""
         font-size: 2.3rem !important;
         font-weight: 800 !important;
     }
+    
+    /* Table Glassmorphism */
+    table {
+        background-color: rgba(17, 34, 64, 0.5) !important;
+        border-radius: 10px;
+        color: white !important;
+    }
+    th {
+        background-color: rgba(0, 210, 255, 0.1) !important;
+        color: #00ffcc !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HELPER FUNCTION: DATA FETCHING ---
+# --- ROBUST DATA FETCHING FUNCTION ---
 @st.cache_data(ttl=900)
 def get_company_data(ticker_symbol, backup_data):
-    if not ticker_symbol or ticker_symbol.strip() == "" or ticker_symbol == "CUSTOM":
-        return backup_data
+    if not ticker_symbol or ticker_symbol.strip() == "":
+        return backup_data, False
     try:
         stock = yf.Ticker(ticker_symbol)
         info = stock.info
         hist = stock.history(period="1d")
-        live_price = float(hist['Close'].iloc[-1]) if not hist.empty else backup_data["backup_price"]
+        live_price = float(hist['Close'].iloc[-1]) if not hist.empty else backup_data["current_price"]
+        
         raw_fcf = info.get('freeCashflow')
         raw_cash = info.get('totalCash')
         raw_debt = info.get('totalDebt')
         raw_shares = info.get('sharesOutstanding')
         
+        # Determine divisor based on market (10M for India, 1M for US)
+        div = 10**7 if ".NS" in ticker_symbol.upper() else 10**6
+        
         return {
             "current_price": live_price,
-            "fcf_base": (raw_fcf / 10**7) if raw_fcf is not None else backup_data["fcf_base"],
-            "cash": (raw_cash / 10**7) if raw_cash is not None else backup_data["cash"],
-            "debt": (raw_debt / 10**7) if raw_debt is not None else backup_data["debt"],
-            "shares": (raw_shares / 10**7) if raw_shares is not None else backup_data["shares"],
+            "fcf_base": (raw_fcf / div) if raw_fcf is not None else backup_data["fcf_base"],
+            "cash": (raw_cash / div) if raw_cash is not None else backup_data["cash"],
+            "debt": (raw_debt / div) if raw_debt is not None else backup_data["debt"],
+            "shares": (raw_shares / div) if raw_shares is not None else backup_data["shares"],
             "g": backup_data["g"], "wacc": backup_data["wacc"], "tg": backup_data["tg"]
-        }
+        }, True
     except Exception:
-        return backup_data 
+        return backup_data, False
 
-# --- DATABASE PRESETS ---
+# --- COMPREHENSIVE GLOBAL & INDIAN COMPANY DATABASE ---
 COMPANY_DB = {
-    "Tata Motors (TATAMOTORS.NS)": {"ticker": "TATAMOTORS.NS", "backup_price": 980.00, "fcf_base": 21000.0, "cash": 42500.0, "debt": 58000.0, "shares": 367.0, "g": 12.0, "wacc": 10.0, "tg": 4.0},
-    "Reliance (RELIANCE.NS)": {"ticker": "RELIANCE.NS", "backup_price": 2950.00, "fcf_base": 65000.0, "cash": 185000.0, "debt": 310000.0, "shares": 676.0, "g": 10.0, "wacc": 10.5, "tg": 4.0},
-    "TCS (TCS.NS)": {"ticker": "TCS.NS", "backup_price": 3900.00, "fcf_base": 45000.0, "cash": 10000.0, "debt": 0.0, "shares": 361.0, "g": 8.0, "wacc": 11.0, "tg": 3.0},
-    "Custom (Enter your own)": {"ticker": "", "backup_price": 1000.00, "fcf_base": 10000.0, "cash": 5000.0, "debt": 2000.0, "shares": 100.0, "g": 10.0, "wacc": 10.0, "tg": 3.0}
+    "Apple Inc. (AAPL)": {"ticker": "AAPL", "current_price": 225.00, "fcf_base": 95000.0, "cash": 150000.0, "debt": 110000.0, "shares": 15200.0, "g": 10.0, "wacc": 8.5, "tg": 3.0},
+    "Microsoft Corp. (MSFT)": {"ticker": "MSFT", "current_price": 415.00, "fcf_base": 75000.0, "cash": 80000.0, "debt": 60000.0, "shares": 7430.0, "g": 11.0, "wacc": 8.5, "tg": 3.0},
+    "NVIDIA Corp. (NVDA)": {"ticker": "NVDA", "current_price": 125.00, "fcf_base": 50000.0, "cash": 35000.0, "debt": 8500.0, "shares": 24600.0, "g": 20.0, "wacc": 10.0, "tg": 4.0},
+    "Tata Motors (TATAMOTORS.NS)": {"ticker": "TATAMOTORS.NS", "current_price": 980.00, "fcf_base": 21000.0, "cash": 42500.0, "debt": 58000.0, "shares": 367.0, "g": 12.0, "wacc": 10.0, "tg": 4.0},
+    "Reliance Industries (RELIANCE.NS)": {"ticker": "RELIANCE.NS", "current_price": 2950.00, "fcf_base": 65000.0, "cash": 185000.0, "debt": 310000.0, "shares": 676.0, "g": 10.0, "wacc": 10.5, "tg": 4.0},
+    "Tata Consultancy Services (TCS.NS)": {"ticker": "TCS.NS", "current_price": 3900.00, "fcf_base": 45000.0, "cash": 10000.0, "debt": 0.0, "shares": 361.0, "g": 8.0, "wacc": 11.0, "tg": 3.0},
+    "Infosys Ltd. (INFY.NS)": {"ticker": "INFY.NS", "current_price": 1800.00, "fcf_base": 24000.0, "cash": 31000.0, "debt": 4000.0, "shares": 415.0, "g": 9.0, "wacc": 10.5, "tg": 3.0},
+    "HDFC Bank (HDFCBANK.NS)": {"ticker": "HDFCBANK.NS", "current_price": 1600.00, "fcf_base": 40000.0, "cash": 150000.0, "debt": 250000.0, "shares": 760.0, "g": 11.0, "wacc": 11.0, "tg": 3.5},
+    "Custom Ticker Entry": {"ticker": "", "current_price": 1000.00, "fcf_base": 10000.0, "cash": 5000.0, "debt": 2000.0, "shares": 100.0, "g": 10.0, "wacc": 10.0, "tg": 3.0}
 }
 
 # ==========================================
@@ -215,7 +226,6 @@ if not st.session_state.app_started:
         
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # Perfectly Centered Button Layout with Balanced Columns
     _, center_col, _ = st.columns([2, 1.5, 2])
     with center_col:
         if st.button("🚀 LESSGOOO"):
@@ -230,25 +240,36 @@ else:
     with st.expander("⚙️ VALUATION CONTROL DESK", expanded=True):
         col_db, col_tick, col_price = st.columns(3)
         with col_db:
-            selected_company = st.selectbox("Database Pre-set", list(COMPANY_DB.keys()))
+            selected_company = st.selectbox("Search & Select Company", list(COMPANY_DB.keys()))
             default_data = COMPANY_DB[selected_company]
+        
         with col_tick:
             user_ticker = st.text_input("Live Ticker (Yahoo Finance)", value=default_data["ticker"])
-            live_data = get_company_data(user_ticker, default_data)
+            
+            # SMART GLOBAL CURRENCY SYSTEM
+            currency = "₹" if ".NS" in user_ticker.upper() or ".BO" in user_ticker.upper() else "$"
+            unit = "Cr" if currency == "₹" else "M"
+            
+            # LIVE DATA FETCHING WITH UI FEEDBACK
+            with st.spinner("Establishing API connection..."):
+                live_data, is_live = get_company_data(user_ticker, default_data)
+                if is_live and user_ticker != "":
+                    st.toast(f"Live data synced for {user_ticker.upper()}", icon="📡")
+                    
         with col_price:
-            current_price = st.number_input("Market Price", value=live_data["current_price"])
+            current_price = st.number_input(f"Market Price ({currency})", value=live_data["current_price"])
 
         st.markdown("---")
         
         col_fcf, col_cash, col_debt, col_shares = st.columns(4)
         with col_fcf:
-            fcf_base = st.number_input("Base FCF (Cr)", value=live_data["fcf_base"])
+            fcf_base = st.number_input(f"Base FCF ({unit})", value=live_data["fcf_base"])
         with col_cash:
-            cash = st.number_input("Total Cash (Cr)", value=live_data["cash"])
+            cash = st.number_input(f"Total Cash ({unit})", value=live_data["cash"])
         with col_debt:
-            debt = st.number_input("Total Debt (Cr)", value=live_data["debt"])
+            debt = st.number_input(f"Total Debt ({unit})", value=live_data["debt"])
         with col_shares:
-            shares = st.number_input("Shares Out.", value=live_data["shares"])
+            shares = st.number_input(f"Shares Out. ({unit})", value=live_data["shares"])
 
         st.markdown("---")
         
@@ -268,8 +289,8 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("Intrinsic Value", f"₹ {results['intrinsic_value']:,.2f}")
-        col2.metric("Market Price", f"₹ {current_price:,.2f}")
+        col1.metric("Intrinsic Value", f"{currency} {results['intrinsic_value']:,.2f}")
+        col2.metric("Market Price", f"{currency} {current_price:,.2f}")
         
         if results["is_undervalued"]:
             col3.metric("Verdict", "🟢 UNDERVALUED", f"{results['diff_percentage']:.1f}% Upside")
@@ -281,10 +302,10 @@ else:
         tab1, tab2, tab3, tab4 = st.tabs(["📋 Breakdown", "📈 Projections", "🎯 Risk Matrix", "🤖 AI Analyst"])
 
         with tab1:
-            st.subheader("Enterprise & Equity Valuation")
+            st.subheader(f"Enterprise & Equity Valuation ({unit})")
             summary_df = pd.DataFrame({
                 "Metric": ["5-Year Cash Flow PV", "Terminal Value PV", "Enterprise Value", "Net Cash / (Debt)", "Equity Value"],
-                "Value (Cr)": [f"{results['sum_pv_5yr_cr']:,.2f}", f"{results['pv_terminal_value_cr']:,.2f}", f"{results['enterprise_value_cr']:,.2f}", f"{results['net_cash_cr']:,.2f}", f"{results['equity_value_cr']:,.2f}"]
+                f"Value ({currency})": [f"{results['sum_pv_5yr_cr']:,.2f}", f"{results['pv_terminal_value_cr']:,.2f}", f"{results['enterprise_value_cr']:,.2f}", f"{results['net_cash_cr']:,.2f}", f"{results['equity_value_cr']:,.2f}"]
             })
             st.table(summary_df)
 
@@ -326,9 +347,9 @@ else:
                 st.write("Hello! I am the logic engine underlying this terminal. Here is the plain-English breakdown of our current scenario:")
                 
                 if results["is_undervalued"]:
-                    st.info(f"**Market Opportunity:** The stock is currently trading at **₹{current_price}**, but based on the company's free cash flow, the true intrinsic value is **₹{results['intrinsic_value']:,.2f}**. Because the market price is lower than the true value, this asset is **Undervalued by {results['diff_percentage']:.1f}%**.")
+                    st.info(f"**Market Opportunity:** The stock is currently trading at **{currency}{current_price}**, but based on the company's free cash flow, the true intrinsic value is **{currency}{results['intrinsic_value']:,.2f}**. Because the market price is lower than the true value, this asset is **Undervalued by {results['diff_percentage']:.1f}%**.")
                 else:
-                    st.info(f"**Market Opportunity:** The stock is currently trading at **₹{current_price}**, but based on the company's free cash flow, the true intrinsic value is only **₹{results['intrinsic_value']:,.2f}**. Because the market price is higher than the true value, this asset is **Overvalued by {results['diff_percentage']:.1f}%**.")
+                    st.info(f"**Market Opportunity:** The stock is currently trading at **{currency}{current_price}**, but based on the company's free cash flow, the true intrinsic value is only **{currency}{results['intrinsic_value']:,.2f}**. Because the market price is higher than the true value, this asset is **Overvalued by {results['diff_percentage']:.1f}%**.")
                     
                 st.write(f"**The Mathematical Assumptions:**")
                 st.write(f"- We are projecting the company's cash flow will grow by **{growth_rate*100:.1f}%** per year for the next 5 years.")
