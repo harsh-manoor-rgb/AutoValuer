@@ -6,7 +6,7 @@ from dcf_engine import calculate_dcf
 # Page Setup
 st.set_page_config(page_title="AutoValuer - DCF Dashboard", layout="wide", page_icon="📊")
 
-st.title("📊 AutoValuer: Fully Automated DCF Platform")
+st.title("📊 AutoValuer: Pro-Tier DCF Platform")
 st.markdown("Select a database company, or choose **Custom** and type a ticker to automatically pull its full balance sheet!")
 
 # --- HELPER FUNCTION: FETCH ALL FINANCIALS ---
@@ -110,7 +110,7 @@ try:
 
     st.divider()
 
-    # --- TWO-COLUMN LAYOUT FOR TABLE AND CHART ---
+    # --- TWO-COLUMN LAYOUT: TABLE & CHART ---
     col_table, col_chart = st.columns([1, 1.2])
 
     with col_table:
@@ -129,17 +129,58 @@ try:
 
     with col_chart:
         st.subheader("📈 Projected Free Cash Flows (Years 1-5)")
-        # Calculate nominal cash flows for the chart
         projected_fcfs = [fcf_base * (1 + growth_rate)**year for year in range(1, 6)]
-        
-        # Create a Pandas DataFrame for Streamlit to chart
         chart_data = pd.DataFrame({
             "Year": ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5"],
             "Free Cash Flow": projected_fcfs
         }).set_index("Year")
-        
-        # Display the interactive bar chart
         st.bar_chart(chart_data)
+
+    st.divider()
+
+    # --- INVESTMENT BANKING SENSITIVITY MATRIX ---
+    st.subheader("🎯 Investment Banking Sensitivity Matrix")
+    st.markdown("This matrix stress-tests the intrinsic value by calculating the impact of changing the **Cost of Capital (WACC)** and the **Expected Growth Rate**. *(Green = Higher Valuation, Red = Lower Valuation)*")
+
+    # Generate the steps for the matrix (+/- 1% and 2% from the base inputs)
+    wacc_steps = [discount_rate - 0.02, discount_rate - 0.01, discount_rate, discount_rate + 0.01, discount_rate + 0.02]
+    # We step growth downwards so the highest growth is visually at the top of the table
+    g_steps = [growth_rate + 0.02, growth_rate + 0.01, growth_rate, growth_rate - 0.01, growth_rate - 0.02]
+
+    matrix_data = []
+    
+    # Loop through all 25 combinations
+    for g in g_steps:
+        row = []
+        for w in wacc_steps:
+            try:
+                # Math Safety Net: If WACC <= Terminal Growth, DCF fails mathematically.
+                if w <= terminal_growth:
+                    row.append(None)
+                else:
+                    res = calculate_dcf(fcf_base, cash, debt, shares, current_price, g, w, terminal_growth)
+                    row.append(res['intrinsic_value'])
+            except:
+                row.append(None)
+        matrix_data.append(row)
+
+    # Format the row and column headers as percentages
+    col_headers = [f"WACC {w*100:.1f}%" for w in wacc_steps]
+    row_headers = [f"Growth {g*100:.1f}%" for g in g_steps]
+
+    # Create the DataFrame
+    df_matrix = pd.DataFrame(matrix_data, columns=col_headers, index=row_headers)
+
+    # Apply the Color Gradient (Heatmap) and format the numbers
+    def format_cells(val):
+        if pd.isna(val):
+            return "N/A"
+        return f"{val:,.2f}"
+
+    styled_matrix = df_matrix.style.format(format_cells).background_gradient(cmap="RdYlGn", axis=None)
+
+    # Display the final beautiful matrix
+    st.dataframe(styled_matrix, use_container_width=True)
 
 except ValueError as e:
     st.error(f"⚠️ {e}")
