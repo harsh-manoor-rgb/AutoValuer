@@ -10,15 +10,24 @@ st.set_page_config(page_title="AutoValuer Terminal", layout="wide", initial_side
 if 'app_started' not in st.session_state:
     st.session_state.app_started = False
 
-# --- ENHANCED ANIMATED CSS & COLOR-SHIFT HOVER ---
+# --- ULTRA-MODERN IMMERSIVE CSS & ANIMATIONS ---
 st.markdown("""
     <style>
+    /* Camouflaged Financial Dark Background with Overlay */
+    .stApp {
+        background-image: linear-gradient(rgba(11, 19, 43, 0.92), rgba(11, 19, 43, 0.96)), 
+                          url('https://images.unsplash.com/photo-1642543492481-44e81e3914a7?q=80&w=2000&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+
     @keyframes floatUp {
-        0% { transform: translateY(30px); opacity: 0; }
+        0% { transform: translateY(20px); opacity: 0; }
         100% { transform: translateY(0); opacity: 1; }
     }
     .block-container {
-        animation: floatUp 0.8s ease-out forwards;
+        animation: floatUp 0.7s ease-out forwards;
     }
 
     @keyframes gradientMove {
@@ -37,7 +46,7 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         animation: gradientMove 4s ease infinite;
         text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
     
     .landing-subtitle, .sub-title {
@@ -48,22 +57,42 @@ st.markdown("""
         margin-bottom: 40px;
     }
 
+    /* Expanding Feature Cards on Hover */
     .feature-box {
-        background-color: rgba(17, 34, 64, 0.7);
+        background: rgba(17, 34, 64, 0.85);
         border: 1px solid #233554;
-        border-radius: 12px;
+        border-radius: 16px;
         padding: 30px;
-        text-align: center;
-        height: 100%;
-        transition: transform 0.3s ease, border-color 0.3s ease;
+        text-align: left;
+        height: 190px;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
     .feature-box:hover {
+        height: 270px;
         transform: translateY(-8px);
         border-color: #00ffcc;
-        box-shadow: 0 10px 25px rgba(0, 255, 204, 0.15);
+        box-shadow: 0 15px 35px rgba(0, 255, 204, 0.2);
     }
     
-    /* Interactive Button with Explicit Color Shift on Hover */
+    .hidden-info {
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        font-size: 0.9rem;
+        color: #00ffcc;
+        margin-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 10px;
+    }
+    .feature-box:hover .hidden-info {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Perfectly Centered Interactive Button */
     .stButton>button {
         width: 100%;
         padding: 16px 32px;
@@ -72,29 +101,29 @@ st.markdown("""
         background: linear-gradient(90deg, #00d2ff, #3a7bd5);
         color: #ffffff;
         border: none;
-        border-radius: 10px;
+        border-radius: 12px;
         transition: all 0.3s ease-in-out;
-        box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 210, 255, 0.4);
     }
     .stButton>button:hover {
         background: linear-gradient(90deg, #00ffcc, #00d2ff) !important;
         color: #0b132b !important;
         transform: scale(1.03);
-        box-shadow: 0 0 25px rgba(0, 255, 204, 0.7);
+        box-shadow: 0 0 30px rgba(0, 255, 204, 0.7);
     }
 
     [data-testid="stMetric"] {
-        background-color: rgba(17, 34, 64, 0.7);
+        background-color: rgba(17, 34, 64, 0.8);
         border: 1px solid #233554;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 20px;
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(12px);
         transition: all 0.3s ease-in-out;
     }
     [data-testid="stMetric"]:hover {
         transform: translateY(-5px) scale(1.02);
         border-color: #00ffcc;
-        box-shadow: 0 8px 20px rgba(0, 255, 204, 0.2);
+        box-shadow: 0 8px 25px rgba(0, 255, 204, 0.2);
     }
     [data-testid="stMetricValue"] {
         color: #ffffff !important;
@@ -153,28 +182,32 @@ if not st.session_state.app_started:
     with col1:
         st.markdown("""
         <div class="feature-box">
-            <h3 style='color:#00d2ff;'>📡 Live Market API</h3>
-            <p style='color:#8892b0;'>Pulls real-time balance sheets, free cash flows, and debt profiles instantly via Yahoo Finance.</p>
+            <h3 style='color:#00d2ff; margin-top:0;'>📡 Live Market API</h3>
+            <p style='color:#8892b0; font-size:0.95rem;'>Pulls real-time balance sheets, free cash flows, and debt profiles instantly via Yahoo Finance.</p>
+            <div class="hidden-info">⚡ Active Connection: Streaming real-time exchange feeds directly to your model workspace.</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown("""
         <div class="feature-box">
-            <h3 style='color:#00d2ff;'>⚙️ Dynamic DCF Engine</h3>
-            <p style='color:#8892b0;'>Calculates enterprise value, equity value, and intrinsic margin of safety seamlessly.</p>
+            <h3 style='color:#00d2ff; margin-top:0;'>⚙️ Dynamic DCF Engine</h3>
+            <p style='color:#8892b0; font-size:0.95rem;'>Calculates enterprise value, equity value, and intrinsic margin of safety seamlessly.</p>
+            <div class="hidden-info">⚡ Algorithmic Core: Automatically computes present values and terminal multipliers instantly.</div>
         </div>
         """, unsafe_allow_html=True)
     with col3:
         st.markdown("""
         <div class="feature-box">
-            <h3 style='color:#00d2ff;'>🎯 Risk Matrix Heatmap</h3>
-            <p style='color:#8892b0;'>Stress-tests 25 macro scenarios simultaneously to visualize valuation volatility.</p>
+            <h3 style='color:#00d2ff; margin-top:0;'>🎯 Risk Matrix Heatmap</h3>
+            <p style='color:#8892b0; font-size:0.95rem;'>Stress-tests 25 macro scenarios simultaneously to visualize valuation volatility.</p>
+            <div class="hidden-info">⚡ Sensitivity Suite: Maps WACC against growth constraints to evaluate safety margins.</div>
         </div>
         """, unsafe_allow_html=True)
         
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    _, center_col, _ = st.columns([1, 1.2, 1])
+    # Perfectly Centered Button Layout
+    _, center_col, _ = st.columns([1.5, 2, 1.5])
     with center_col:
         if st.button("🚀 Initialize Terminal"):
             st.session_state.app_started = True
