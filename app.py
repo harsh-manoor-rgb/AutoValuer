@@ -1,5 +1,6 @@
 import streamlit as st
 import yfinance as yf
+import pandas as pd
 from dcf_engine import calculate_dcf
 
 # Page Setup
@@ -11,7 +12,6 @@ st.markdown("Select a database company, or choose **Custom** and type a ticker t
 # --- HELPER FUNCTION: FETCH ALL FINANCIALS ---
 @st.cache_data(ttl=900)
 def get_company_data(ticker_symbol, backup_data):
-    # If the box is empty or says CUSTOM, just use the manual backup data
     if not ticker_symbol or ticker_symbol.strip() == "" or ticker_symbol == "CUSTOM":
         return backup_data
     
@@ -19,18 +19,14 @@ def get_company_data(ticker_symbol, backup_data):
         stock = yf.Ticker(ticker_symbol)
         info = stock.info
         
-        # 1. Fetch live price
         hist = stock.history(period="1d")
         live_price = float(hist['Close'].iloc[-1]) if not hist.empty else backup_data["backup_price"]
         
-        # 2. Fetch raw balance sheet numbers (yfinance gives absolute numbers like 50,000,000,000)
-        # We use .get() which safely falls back to None if Yahoo is missing the data
         raw_fcf = info.get('freeCashflow')
         raw_cash = info.get('totalCash')
         raw_debt = info.get('totalDebt')
         raw_shares = info.get('sharesOutstanding')
         
-        # 3. Convert to Crores / 10 Millions (Divide by 10^7 to match your dcf_engine math)
         return {
             "current_price": live_price,
             "fcf_base": (raw_fcf / 10**7) if raw_fcf is not None else backup_data["fcf_base"],
@@ -42,7 +38,7 @@ def get_company_data(ticker_symbol, backup_data):
             "tg": backup_data["tg"]
         }
     except Exception as e:
-        return backup_data # Fallback to manual numbers if internet drops or ticker is invalid
+        return backup_data 
 
 # --- 1. COMPANY DATABASE ---
 COMPANY_DB = {
@@ -77,7 +73,6 @@ default_data = COMPANY_DB[selected_company]
 st.sidebar.header("1. Financial Inputs")
 user_ticker = st.sidebar.text_input("Stock Ticker (Yahoo Finance)", value=default_data["ticker"])
 
-# MAGIC HAPPENS HERE: The app fetches ALL live data based on what you typed!
 live_data = get_company_data(user_ticker, default_data)
 
 current_price = st.sidebar.number_input("Current Stock Price", value=live_data["current_price"], min_value=0.01)
@@ -115,19 +110,36 @@ try:
 
     st.divider()
 
-    # --- VALUATION SUMMARY TABLE ---
-    st.subheader(f"💡 {user_ticker if user_ticker else 'Custom'} - Enterprise & Equity Breakdown")
-    summary_data = {
-        "Metric": ["5-Year Cash Flow PV", "Terminal Value PV", "Enterprise Value", "Net Cash / (Debt)", "Equity Value"],
-        "Value (Cr / 10M)": [
-            f"{results['sum_pv_5yr_cr']:,.2f}",
-            f"{results['pv_terminal_value_cr']:,.2f}",
-            f"{results['enterprise_value_cr']:,.2f}",
-            f"{results['net_cash_cr']:,.2f}",
-            f"{results['equity_value_cr']:,.2f}"
-        ]
-    }
-    st.table(summary_data)
+    # --- TWO-COLUMN LAYOUT FOR TABLE AND CHART ---
+    col_table, col_chart = st.columns([1, 1.2])
+
+    with col_table:
+        st.subheader("💡 Enterprise & Equity Breakdown")
+        summary_data = {
+            "Metric": ["5-Year Cash Flow PV", "Terminal Value PV", "Enterprise Value", "Net Cash / (Debt)", "Equity Value"],
+            "Value (Cr / 10M)": [
+                f"{results['sum_pv_5yr_cr']:,.2f}",
+                f"{results['pv_terminal_value_cr']:,.2f}",
+                f"{results['enterprise_value_cr']:,.2f}",
+                f"{results['net_cash_cr']:,.2f}",
+                f"{results['equity_value_cr']:,.2f}"
+            ]
+        }
+        st.table(summary_data)
+
+    with col_chart:
+        st.subheader("📈 Projected Free Cash Flows (Years 1-5)")
+        # Calculate nominal cash flows for the chart
+        projected_fcfs = [fcf_base * (1 + growth_rate)**year for year in range(1, 6)]
+        
+        # Create a Pandas DataFrame for Streamlit to chart
+        chart_data = pd.DataFrame({
+            "Year": ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5"],
+            "Free Cash Flow": projected_fcfs
+        }).set_index("Year")
+        
+        # Display the interactive bar chart
+        st.bar_chart(chart_data)
 
 except ValueError as e:
     st.error(f"⚠️ {e}")
