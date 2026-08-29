@@ -10,7 +10,7 @@ st.set_page_config(page_title="AutoValuer Terminal", layout="wide", initial_side
 if 'app_started' not in st.session_state:
     st.session_state.app_started = False
 
-# --- ULTRA-MODERN IMMERSIVE CSS & ANIMATIONS ---
+# --- ULTRA-MODERN IMMERSIVE CSS & SUBDUED BUTTON STYLING ---
 st.markdown("""
     <style>
     /* Camouflaged Financial Dark Background with Overlay */
@@ -92,24 +92,25 @@ st.markdown("""
         transform: translateY(0);
     }
 
-    /* Perfectly Centered Interactive Button */
+    /* Perfectly Centered, Subdued Professional FinTech Button */
     .stButton>button {
         width: 100%;
-        padding: 16px 32px;
-        font-size: 1.2rem;
-        font-weight: bold;
-        background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+        padding: 14px 28px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        background: linear-gradient(90deg, #1e3a8a, #3b82f6);
         color: #ffffff;
-        border: none;
+        border: 1px solid rgba(59, 130, 246, 0.4);
         border-radius: 12px;
         transition: all 0.3s ease-in-out;
-        box-shadow: 0 4px 20px rgba(0, 210, 255, 0.4);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
     .stButton>button:hover {
-        background: linear-gradient(90deg, #00ffcc, #00d2ff) !important;
-        color: #0b132b !important;
-        transform: scale(1.03);
-        box-shadow: 0 0 30px rgba(0, 255, 204, 0.7);
+        background: linear-gradient(90deg, #2563eb, #1d4ed8) !important;
+        border-color: #60a5fa;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        color: #ffffff !important;
     }
 
     [data-testid="stMetric"] {
@@ -206,10 +207,10 @@ if not st.session_state.app_started:
         
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # Perfectly Centered Button Layout
-    _, center_col, _ = st.columns([1.5, 2, 1.5])
+    # Perfectly Centered Button Layout with Balanced Columns
+    _, center_col, _ = st.columns([2, 1.5, 2])
     with center_col:
-        if st.button("🚀 Initialize Terminal"):
+        if st.button("🚀 LESSGOOO"):
             st.session_state.app_started = True
             st.rerun()
 
