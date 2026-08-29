@@ -10,7 +10,7 @@ st.set_page_config(page_title="AutoValuer Terminal", layout="wide", initial_side
 if 'app_started' not in st.session_state:
     st.session_state.app_started = False
 
-# --- ULTRA-MODERN IMMERSIVE CSS & SUBDUED BUTTON STYLING ---
+# --- ULTRA-MODERN CINEMATIC CSS & ANIMATIONS ---
 st.markdown("""
     <style>
     /* Camouflaged Financial Dark Background with Overlay */
@@ -22,12 +22,20 @@ st.markdown("""
         background-attachment: fixed;
     }
 
-    @keyframes floatUp {
-        0% { transform: translateY(20px); opacity: 0; }
-        100% { transform: translateY(0); opacity: 1; }
+    /* Cinematic Scale & Fade Entrance Transition for Main Screen */
+    @keyframes cinematicEntrance {
+        0% {
+            opacity: 0;
+            transform: scale(0.95) translateY(25px);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1.0) translateY(0);
+        }
     }
+    
     .block-container {
-        animation: floatUp 0.7s ease-out forwards;
+        animation: cinematicEntrance 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     @keyframes gradientMove {
