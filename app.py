@@ -1,7 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import time
+import plotly.graph_objects as go
 from dcf_engine import calculate_dcf
 
 # --- PAGE SETUP ---
@@ -21,22 +21,18 @@ st.markdown("""
         background-position: center;
         background-attachment: fixed;
     }
-
     @keyframes cinematicEntrance {
         0% { opacity: 0; transform: scale(0.95) translateY(25px); }
         100% { opacity: 1; transform: scale(1.0) translateY(0); }
     }
-    
     .block-container {
         animation: cinematicEntrance 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-
     @keyframes gradientMove {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
     }
-    
     .landing-title, .main-title {
         font-family: 'Helvetica Neue', sans-serif;
         font-size: 4.2rem;
@@ -49,7 +45,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 5px;
     }
-    
     .landing-subtitle, .sub-title {
         color: #8892b0;
         font-size: 1.2rem;
@@ -57,7 +52,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 40px;
     }
-
     .feature-box {
         background: rgba(17, 34, 64, 0.85);
         border: 1px solid #233554;
@@ -76,7 +70,6 @@ st.markdown("""
         border-color: #00ffcc;
         box-shadow: 0 15px 35px rgba(0, 255, 204, 0.2);
     }
-    
     .hidden-info {
         opacity: 0;
         transform: translateY(10px);
@@ -91,7 +84,6 @@ st.markdown("""
         opacity: 1;
         transform: translateY(0);
     }
-
     .stButton>button {
         width: 100%;
         padding: 14px 28px;
@@ -111,7 +103,6 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         color: #ffffff !important;
     }
-
     [data-testid="stMetric"] {
         background-color: rgba(17, 34, 64, 0.8);
         border: 1px solid #233554;
@@ -130,8 +121,6 @@ st.markdown("""
         font-size: 2.3rem !important;
         font-weight: 800 !important;
     }
-    
-    /* Table Glassmorphism */
     table {
         background-color: rgba(17, 34, 64, 0.5) !important;
         border-radius: 10px;
@@ -160,8 +149,7 @@ def get_company_data(ticker_symbol, backup_data):
         raw_debt = info.get('totalDebt')
         raw_shares = info.get('sharesOutstanding')
         
-        # Determine divisor based on market (10M for India, 1M for US)
-        div = 10**7 if ".NS" in ticker_symbol.upper() else 10**6
+        div = 10**7 if ".NS" in ticker_symbol.upper() or ".BO" in ticker_symbol.upper() else 10**6
         
         return {
             "current_price": live_price,
@@ -195,7 +183,6 @@ if not st.session_state.app_started:
     # --- INTRODUCTION / LANDING WINDOW ---
     st.markdown('<div class="landing-title">AutoValuer Terminal</div>', unsafe_allow_html=True)
     st.markdown('<div class="landing-subtitle">Institutional-Grade Equity Valuation & Risk Analytics Suite</div>', unsafe_allow_html=True)
-    
     st.markdown("<br>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
@@ -246,11 +233,9 @@ else:
         with col_tick:
             user_ticker = st.text_input("Live Ticker (Yahoo Finance)", value=default_data["ticker"])
             
-            # SMART GLOBAL CURRENCY SYSTEM
             currency = "₹" if ".NS" in user_ticker.upper() or ".BO" in user_ticker.upper() else "$"
             unit = "Cr" if currency == "₹" else "M"
             
-            # LIVE DATA FETCHING WITH UI FEEDBACK
             with st.spinner("Establishing API connection..."):
                 live_data, is_live = get_company_data(user_ticker, default_data)
                 if is_live and user_ticker != "":
@@ -310,10 +295,65 @@ else:
             st.table(summary_df)
 
         with tab2:
-            st.subheader("5-Year Trajectory")
-            projected_fcfs = [fcf_base * (1 + growth_rate)**year for year in range(1, 6)]
-            chart_data = pd.DataFrame({"Year": [f"Year {i}" for i in range(1, 6)], "FCF": projected_fcfs}).set_index("Year")
-            st.bar_chart(chart_data, use_container_width=True)
+            # --- THE NEW ADVANCED DATA VISUALIZATION ENGINE ---
+            
+            # Interactive Graph Controls
+            graph_col1, graph_col2 = st.columns([2, 1])
+            with graph_col1:
+                proj_timeline = st.slider("Projection Timeline (Years)", min_value=0.1, max_value=50.0, value=10.0, step=0.1)
+            with graph_col2:
+                chart_type = st.selectbox("Visualization Engine", ["Interactive Area (Recommended)", "Comparative Bar", "Trend Line", "Data Scatter"])
+            
+            # Heavy Calculation: 2-Stage Growth & Present Value Discounting (Down to the decimal)
+            timeline_points = [round(x * 0.1, 1) for x in range(1, int(proj_timeline * 10) + 1)]
+            nominal_fcfs = []
+            discounted_pvs = []
+            
+            for t in timeline_points:
+                # Stage 1: High Growth Phase
+                if t <= 5:
+                    cf = fcf_base * (1 + growth_rate)**t
+                # Stage 2: Terminal Phase
+                else:
+                    base_yr5 = fcf_base * (1 + growth_rate)**5
+                    cf = base_yr5 * (1 + terminal_growth)**(t - 5)
+                
+                # Apply the WACC gravitational pull
+                pv = cf / ((1 + discount_rate)**t)
+                
+                nominal_fcfs.append(cf)
+                discounted_pvs.append(pv)
+            
+            # Render Institutional Plotly Graphics
+            fig = go.Figure()
+            
+            if chart_type == "Comparative Bar":
+                fig.add_trace(go.Bar(x=timeline_points, y=nominal_fcfs, name="Nominal Future Cash Flow", marker_color="#00d2ff"))
+                fig.add_trace(go.Bar(x=timeline_points, y=discounted_pvs, name="Present Value (WACC Discounted)", marker_color="#00ffcc"))
+            elif chart_type == "Trend Line":
+                fig.add_trace(go.Scatter(x=timeline_points, y=nominal_fcfs, mode='lines', name="Nominal Future Cash Flow", line=dict(color="#00d2ff", width=3)))
+                fig.add_trace(go.Scatter(x=timeline_points, y=discounted_pvs, mode='lines', name="Present Value", line=dict(color="#00ffcc", width=3)))
+            elif chart_type == "Data Scatter":
+                fig.add_trace(go.Scatter(x=timeline_points, y=nominal_fcfs, mode='markers', name="Nominal Future Cash Flow", marker=dict(color="#00d2ff", size=6)))
+                fig.add_trace(go.Scatter(x=timeline_points, y=discounted_pvs, mode='markers', name="Present Value", marker=dict(color="#00ffcc", size=6)))
+            else: # Interactive Area
+                fig.add_trace(go.Scatter(x=timeline_points, y=nominal_fcfs, fill='tozeroy', mode='none', name="Nominal Future Cash Flow", fillcolor="rgba(0, 210, 255, 0.4)"))
+                fig.add_trace(go.Scatter(x=timeline_points, y=discounted_pvs, fill='tozeroy', mode='none', name="Present Value", fillcolor="rgba(0, 255, 204, 0.7)"))
+
+            # Apply Camouflage Dark Theme to Chart
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                hovermode="x unified",
+                margin=dict(l=0, r=0, t=30, b=0),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                xaxis_title="Years into Future",
+                yaxis_title=f"Cash Flow ({unit})",
+                xaxis=dict(gridcolor="rgba(255,255,255,0.1)"),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.1)")
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
         with tab3:
             st.subheader("Institutional Risk Heatmap")
