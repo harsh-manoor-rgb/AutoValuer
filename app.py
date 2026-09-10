@@ -15,13 +15,14 @@ if 'app_started' not in st.session_state:
 # --- ULTRA-MODERN IMMERSIVE CSS & ANIMATIONS ---
 st.markdown("""
     <style>
+    /* CLEAN INSTITUTIONAL RADIAL GRADIENT BACKGROUND */
     .stApp {
-        background-image: linear-gradient(rgba(11, 19, 43, 0.92), rgba(11, 19, 43, 0.96)), 
-                          url('https://images.unsplash.com/photo-1642543492481-44e81e3914a7?q=80&w=2000&auto=format&fit=crop');
+        background: radial-gradient(circle at 50% 0%, #112240 0%, #0a192f 100%);
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }
+    
     @keyframes cinematicEntrance {
         0% { opacity: 0; transform: scale(0.95) translateY(25px); }
         100% { opacity: 1; transform: scale(1.0) translateY(0); }
@@ -476,4 +477,3 @@ else:
 
     # Call the fragment function
     interactive_valuation_engine(fcf_base, cash, debt, shares, current_price, currency, unit, live_data)
-#deploy
